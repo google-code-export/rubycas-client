@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
 </head>
 <body class="standalone-code">
-  <pre><span class="ruby-comment cmt"># File lib/cas_auth.rb, line 21</span>
+  <pre><span class="ruby-comment cmt"># File lib/cas_auth.rb, line 20</span>
     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">method_missing</span>(<span class="ruby-identifier">name</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
       <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@logger</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-ivar">@logger</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">name</span>)
         <span class="ruby-ivar">@logger</span>.<span class="ruby-identifier">send</span>(<span class="ruby-identifier">name</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)

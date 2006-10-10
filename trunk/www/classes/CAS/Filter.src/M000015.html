@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
 </head>
 <body class="standalone-code">
-  <pre><span class="ruby-comment cmt"># File lib/cas_auth.rb, line 100</span>
+  <pre><span class="ruby-comment cmt"># File lib/cas_auth.rb, line 99</span>
       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">create_logout_url</span>
         <span class="ruby-keyword kw">if</span> <span class="ruby-operator">!</span><span class="ruby-ivar">@@logout_url</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-ivar">@@login_url</span> <span class="ruby-operator">=~</span> <span class="ruby-regexp re">%r{^(.+?)/[^/]*$}</span>
           <span class="ruby-ivar">@@logout_url</span> = <span class="ruby-node">&quot;#{$1}/logout&quot;</span>
