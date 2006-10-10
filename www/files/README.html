@@ -56,7 +56,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 05 20:15:03 EDT 2006</td>
+      <td>Tue Oct 10 16:30:26 EDT 2006</td>
     </tr>
     </table>
   </div>
@@ -83,6 +83,8 @@ DOT net&gt;, Matt Walker &lt;mwalker AT tamu DOT edu&gt;
 </td></tr>
 <tr><td valign="top">Website:</td><td><a
 href="http://rubyforge.org/projects/rubycas-client">rubyforge.org/projects/rubycas-client</a>
+and <a
+href="http://code.google.com/p/rubycas-client">code.google.com/p/rubycas-client</a>
 
 </td></tr>
 </table>
@@ -121,7 +123,7 @@ href="../classes/CAS.html">CAS</a> support into your Rails app is via the
 plugins facility:
 </p>
 <pre>
-  ./script/plugin install http://rubycas-client.rubyforge.org/plugin/current
+  ./script/plugin install http://rubycas-client.rubyforge.org/plugin/rubycas-client
 </pre>
 <p>
 Alternatively, the library is also available as a gem, which can be
@@ -134,14 +136,7 @@ installed by:
 The latest development version is availabe via subversion:
 </p>
 <pre>
-  svn checkout svn://rubyforge.org/var/svn/rubycas-client/trunk/ruby
-</pre>
-<p>
-Or you can install the latest development version into your Rails app as a
-plugin:
-</p>
-<pre>
-  ./script/plugin install -x svn://rubyforge.org/var/svn/rubycas-client/trunk/ruby
+  ./script/plugin install -x http://rubycas-client.googlecode.com/svn/trunk/rubycas-client
 </pre>
 <p>
 Please contact the developers via the <a
@@ -319,6 +314,20 @@ won&#8217;t work</em>. You will probably need to use a real certificate
 purchased from a trusted CA authority (there are ways around this, but good
 luck :)
 </p>
+<h2>SSL Support</h2>
+<p>
+If you are getting an error on net/https &#8212; something like this:
+</p>
+<pre>
+  no such file to load -- net/https
+</pre>
+<p>
+Then make sure the library for open SSL is installed. For example, on an
+Debian/Ubuntu system issue the following:
+</p>
+<pre>
+  sudo apt-get install libopenssl-ruby
+</pre>
 <h2>License</h2>
 <p>
 This program is free software; you can redistribute it and/or modify it
