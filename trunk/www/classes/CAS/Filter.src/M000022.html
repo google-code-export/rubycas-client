@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>filter_r (CAS::Filter)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/cas_auth.rb, line 152</span>
+      <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">filter_r</span>(<span class="ruby-identifier">controller</span>)
+        <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">debug</span>(<span class="ruby-node">&quot;filter of controller: #{controller}&quot;</span>)
+        <span class="ruby-identifier">receipt</span> = <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:casfilterreceipt</span>]
+        <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">info</span>(<span class="ruby-node">&quot;receipt: #{receipt}&quot;</span>)
+        <span class="ruby-identifier">valid</span> = <span class="ruby-keyword kw">false</span>
+        <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">receipt</span>
+          <span class="ruby-identifier">valid</span> = <span class="ruby-identifier">validate_receipt</span>(<span class="ruby-identifier">receipt</span>)
+          <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">info</span>(<span class="ruby-node">&quot;valid receipt?: #{valid}&quot;</span>)
+        <span class="ruby-keyword kw">else</span>
+          <span class="ruby-identifier">reqticket</span> = <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">params</span>[<span class="ruby-value str">&quot;ticket&quot;</span>]
+          <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">info</span>(<span class="ruby-node">&quot;ticket: #{reqticket}&quot;</span>)
+          <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">reqticket</span>
+            <span class="ruby-comment cmt"># We temporarily allow ActionController requests to be handled concurrently.</span>
+            <span class="ruby-comment cmt"># Otherwise proxy granting ticket callbacks from CAS wouldn't work, since</span>
+            <span class="ruby-comment cmt"># the Rails server would be deadlocked while it waits for the CAS server to validate</span>
+            <span class="ruby-comment cmt"># the ticket, and the CAS server waits for the Rails server to receive the PGT callback.</span>
+            <span class="ruby-comment cmt"># Note that since the allow_concurrency option is undocumented and considered</span>
+            <span class="ruby-comment cmt"># experimental, what we're doing here may cause unforseen problems. Beware!</span>
+            <span class="ruby-constant">ActionController</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">allow_concurrency</span> = <span class="ruby-keyword kw">true</span>
+            <span class="ruby-identifier">receipt</span> = <span class="ruby-identifier">authenticated_user</span>(<span class="ruby-identifier">reqticket</span>,<span class="ruby-identifier">controller</span>)
+            <span class="ruby-constant">ActionController</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">allow_concurrency</span> = <span class="ruby-keyword kw">false</span>
+            
+            <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">info</span>(<span class="ruby-node">&quot;new receipt: #{receipt}&quot;</span>)
+            <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">info</span>(<span class="ruby-value str">&quot;validate_receipt: &quot;</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">validate_receipt</span>(<span class="ruby-identifier">receipt</span>).<span class="ruby-identifier">to_s</span>)
+            <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">receipt</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-identifier">validate_receipt</span>(<span class="ruby-identifier">receipt</span>)
+              <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:casfilterreceipt</span>] = <span class="ruby-identifier">receipt</span>
+              <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-ivar">@@session_username</span>] = <span class="ruby-identifier">receipt</span>.<span class="ruby-identifier">user_name</span>
+              
+              <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">receipt</span>.<span class="ruby-identifier">pgt_iou</span>
+                <span class="ruby-constant">ActionController</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">allow_concurrency</span> = <span class="ruby-keyword kw">true</span>
+                <span class="ruby-identifier">retrieve_url</span> = <span class="ruby-node">&quot;#{@@proxy_retrieval_url}?pgtIou=#{receipt.pgt_iou}&quot;</span>
+                <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">info</span>(<span class="ruby-node">&quot;retrieving pgt from: #{retrieve_url}&quot;</span>)
+                <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:casfilterpgt</span>] = <span class="ruby-constant">CAS</span><span class="ruby-operator">::</span><span class="ruby-constant">ServiceTicketValidator</span>.<span class="ruby-identifier">retrieve</span>(<span class="ruby-identifier">retrieve_url</span>)
+                <span class="ruby-constant">ActionController</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">allow_concurrency</span> = <span class="ruby-keyword kw">false</span>
+              <span class="ruby-keyword kw">end</span>
+              
+              <span class="ruby-identifier">valid</span> = <span class="ruby-keyword kw">true</span>
+            <span class="ruby-keyword kw">end</span>
+          <span class="ruby-keyword kw">else</span>
+            <span class="ruby-identifier">did_gateway</span> = <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:casfiltergateway</span>]
+            <span class="ruby-identifier">raise</span> <span class="ruby-constant">CASException</span>, <span class="ruby-value str">&quot;Can't redirect without login url&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-operator">!</span><span class="ruby-ivar">@@login_url</span>
+            <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">did_gateway</span>
+              <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-ivar">@@session_username</span>]
+                <span class="ruby-identifier">valid</span> = <span class="ruby-keyword kw">true</span>
+              <span class="ruby-keyword kw">else</span>
+                <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:casfiltergateway</span>] = <span class="ruby-keyword kw">true</span>
+              <span class="ruby-keyword kw">end</span>
+            <span class="ruby-keyword kw">else</span>
+              <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:casfiltergateway</span>] = <span class="ruby-keyword kw">true</span>
+            <span class="ruby-keyword kw">end</span>
+          <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">info</span>(<span class="ruby-node">&quot;will send redirect #{redirect_url(controller)}&quot;</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-operator">!</span><span class="ruby-identifier">valid</span>
+        <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">send</span> <span class="ruby-identifier">:redirect_to</span>,<span class="ruby-identifier">redirect_url</span>(<span class="ruby-identifier">controller</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-operator">!</span><span class="ruby-identifier">valid</span>
+        <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">valid</span>
+      <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

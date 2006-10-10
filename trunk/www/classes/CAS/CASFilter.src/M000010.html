@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>filter (CAS::CASFilter)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/cas-client.rb, line 83</span>
+        <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">filter</span>(<span class="ruby-identifier">controller</span>)
+            <span class="ruby-constant">RAILS_DEFAULT_LOGGER</span>.<span class="ruby-identifier">info</span> <span class="ruby-value str">&quot;Starting CAS filter...&quot;</span>
+            
+            <span class="ruby-comment cmt"># If we have a user, a successful login was made for this session</span>
+            <span class="ruby-keyword kw">if</span> (<span class="ruby-operator">!</span><span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:user</span>].<span class="ruby-identifier">nil?</span>)
+              <span class="ruby-comment cmt"># If the local session auth info is older than @@refresh_ticket_interval, then re-submit the ticket for validation</span>
+              <span class="ruby-comment cmt"># to ensure that the ticket hasn't expired on the CAS end</span>
+              <span class="ruby-identifier">cas_ticket_timestamp</span> = <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:cas_ticket_timestamp</span>]
+              
+              <span class="ruby-keyword kw">if</span> (<span class="ruby-identifier">cas_ticket_timestamp</span> <span class="ruby-keyword kw">and</span> <span class="ruby-identifier">cas_ticket_timestamp</span>.<span class="ruby-identifier">kind_of?</span> <span class="ruby-constant">Time</span>)
+                <span class="ruby-identifier">time_elapsed</span> = <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span> <span class="ruby-operator">-</span> <span class="ruby-identifier">cas_ticket_timestamp</span>
+              
+                <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">time_elapsed</span> <span class="ruby-operator">&lt;</span> (<span class="ruby-constant">CAS</span>.<span class="ruby-identifier">refresh_ticket_interval</span> <span class="ruby-operator">*</span> <span class="ruby-value">60</span>)
+                  <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">true</span> <span class="ruby-comment cmt"># local session info isn't expired so we're okay</span>
+                <span class="ruby-keyword kw">end</span>
+              <span class="ruby-keyword kw">end</span>
+              <span class="ruby-comment cmt"># local session info is expired so we continue with full ticket validation...</span>
+            <span class="ruby-keyword kw">end</span>
+
+            <span class="ruby-constant">RAILS_DEFAULT_LOGGER</span>.<span class="ruby-identifier">debug</span> <span class="ruby-value str">&quot;No user session present, begin CAS authenticatoin process...&quot;</span>
+
+            <span class="ruby-comment cmt"># Otherwise, we require a ticket to authenticate the user</span>
+            <span class="ruby-identifier">service</span> = <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">url_for</span>()
+            <span class="ruby-identifier">ticket</span> = <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">params</span>[<span class="ruby-identifier">:ticket</span>]
+           
+            <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">ticket</span>.<span class="ruby-identifier">nil?</span> <span class="ruby-operator">||</span> <span class="ruby-identifier">ticket</span> <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;&quot;</span>
+              <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">redirect_to_login</span>(<span class="ruby-identifier">controller</span>, <span class="ruby-identifier">service</span>)
+              <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">false</span>
+            <span class="ruby-keyword kw">end</span>
+
+            <span class="ruby-identifier">cas_payload</span> = <span class="ruby-identifier">validate_ticket</span>(<span class="ruby-identifier">service</span>, <span class="ruby-identifier">ticket</span>)
+            
+            <span class="ruby-comment cmt">#TODO: redirect to login with appropriate error message (i.e. &quot;your session has expried&quot; or &quot;invalid response from cas&quot;, etc.)</span>
+            <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">cas_payload</span>.<span class="ruby-identifier">nil?</span> <span class="ruby-operator">||</span> <span class="ruby-identifier">cas_payload</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">!=</span> <span class="ruby-value">1</span>
+              <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">redirect_to_login</span>(<span class="ruby-identifier">controller</span>, <span class="ruby-identifier">service</span>)
+              <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">false</span>
+            <span class="ruby-keyword kw">end</span>
+            
+            <span class="ruby-identifier">username</span> = <span class="ruby-identifier">cas_payload</span>[<span class="ruby-identifier">:username</span>]
+            
+            <span class="ruby-identifier">user</span> = <span class="ruby-constant">CAS</span>.<span class="ruby-identifier">load_user_data</span>(<span class="ruby-identifier">username</span>, <span class="ruby-identifier">cas_payload</span>)
+            <span class="ruby-constant">CAS</span>.<span class="ruby-identifier">save_user_data</span>(<span class="ruby-identifier">user</span>)
+            
+            <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:user</span>] = <span class="ruby-identifier">user</span>
+            <span class="ruby-identifier">controller</span>.<span class="ruby-identifier">session</span>[<span class="ruby-identifier">:cas_ticket_timestamp</span>] = <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span>
+            <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">true</span>
+        <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>
