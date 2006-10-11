@@ -56,7 +56,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Tue Oct 10 16:30:26 EDT 2006</td>
+      <td>Wed Oct 11 18:46:24 EDT 2006</td>
     </tr>
     </table>
   </div>
@@ -248,6 +248,49 @@ have disabled the default route, you should add the following:
 <pre>
   map.cas_proxy_callback 'cas_proxy_callback/:action', :controller =&gt; 'cas_proxy_callback'
 </pre>
+<p>
+Now here&#8217;s a big giant caveat: <b>your <a
+href="../classes/CAS.html">CAS</a> callback application and your <a
+href="../classes/CAS.html">CAS</a> proxy application must run on separate
+Rails servers</b>. In other words, if you want a Rails app to act as a <a
+href="../classes/CAS.html">CAS</a> ticket-granting proxy, the
+cas_proxy_callback controller must run on a different server. This is
+because Rails does not properly support handling of concurrent requests.
+The <a href="../classes/CAS.html">CAS</a> proxy mechanism acts in such a
+way that if your proxy application and your callback controller were on the
+same server you would end up with a deadlock (the <a
+href="../classes/CAS.html">CAS</a> server would be waiting for its callback
+to be accepted by your Rails server, but your Rails server wouldn&#8217;t
+respond to the <a href="../classes/CAS.html">CAS</a> server&#8217;s
+callback until the <a href="../classes/CAS.html">CAS</a> server responded
+back first).
+</p>
+<p>
+The simplest workaround is this:
+</p>
+<ol>
+<li>Create an empty rails app (i.e. something like <tt>rails
+cas_proxy_callback</tt>)
+
+</li>
+<li>Make sure that you have the <a href="../classes/CAS.html">CAS</a> plugin
+installed. If you installed it as a gem, you don&#8217;t have to do
+anything since it is already installed. If you want to install as a plugin,
+see the instructions in the &quot;Installing&quot; section above.
+
+</li>
+<li>Make sure that the server is up and running, and configure your
+proxy_callback_url and proxy_retrieval_url to point to the new server as
+described above (or rather, make Pound point to the new server, if
+that&#8217;s how you&#8217;re handling https).
+
+</li>
+</ol>
+<p>
+That&#8217;s it. The proxy_callback_controller doesn&#8217;t require any
+additional configuration. It doesn&#8217;t access the database or anything
+of that sort.
+</p>
 <p>
 Once your user logs in to <a href="../classes/CAS.html">CAS</a> via your
 application, you can do the following to obtain a service ticket that can
