@@ -49,8 +49,14 @@ you always have the latest bleeding-edge version of RubyCAS-Client:
 
 == Usage Examples
 
-Although RubyCAS-Client can be used with other web Frameworks (for example Camping), the following examples
-are aimed at {Ruby on Rails}[http://rubyonrails.org].
+If you'd rather jump right in, have a look at the example Rails and Merb applications pre-configured for CAS
+authentication:
+
+http://github.com/gunark/rubycas-client/tree/master/examples
+
+
+Otherwise, continue reading for a step-by-step guide for integrating RubyCAS-Client with Rails:
+
 
 ==== Using RubyCAS-Client in Rails controllers
 
@@ -128,12 +134,23 @@ the disadvantage is that the filter no longer checks to make sure that the user'
 In other words it is possible for the user's authentication session to be closed on the CAS server without the
 client application knowing about it.
 
-In the future RubyCAS-Client will support the new "Single Sign-Out" functionality in CAS 3.1, allowing the server to 
-notify the client application that the CAS session is closed, but for now it is up to you  to handle this by, for example, 
-by wiping the local <tt>session[:cas_user]</tt> value periodically to force a CAS re-check.
+To address this, RubyCAS-Client now supports the new "Single Sign-Out" functionality in CAS 3.1, allowing the server to 
+notify the client application that the CAS session is closed. The client will automatically intercept Single Sign-Out
+requsts from the CAS server, but in order for this to work you must configure your Rails application as follows:
+
+1. The Rails session store must be set to ActiveRecord: <tt>config.action_controller.session_store = :active_record_store</tt>
+2. The server must be able to read and write to RAILS_ROOT/tmp/sessions. If you are in a clustered environment,
+   the contents of this directory must be shared between all server instances. 
+3. Cross-site request forgery protection must be disabled. In your <tt>application.rb</tt>: <tt>self.allow_forgery_protection = false</tt>.
+   (Or rather you may want to disable forgery protection only for actions that are behind the CAS filter.)
+
+The best way to debug single-sign out functionality is to configure your CAS client with logging (see above) and then watch the
+log to ensure that single-sign out requests from the server are being processed correctly.
+
  
-Alternatively, it is possible to disable this authentication persistence behaviour by setting the <tt>:authenticate_on_every_request</tt>
-configuration option to true as in the example above.
+Alternatively, it is possible to disable authentication persistence in the client by setting the <tt>:authenticate_on_every_request</tt>
+configuration option to true as, in the example in the previous section. However, this is not recommended as it will almost
+certainly have a deleterious impact on performance and can interfere with certain HTTP transactions (AJAX requests, for example). 
 
 
 ==== Defining a 'logout' action
@@ -177,6 +194,9 @@ CAS authentication for all actions in a controller except the index action:
     # ...
   end
   
+To provide a login URL for unauthenticated users:
+
+  <%= link_to("Login", CASClient::Frameworks::Rails::Filter.login_url(controller)) %>
 
 ==== How to act as a CAS proxy
 
